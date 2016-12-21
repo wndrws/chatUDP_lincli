@@ -171,6 +171,11 @@ int main(int argc, char** argv) {
     SOCKET s;
     string username, peername, name;
 
+    if(argc < 3) {
+        cout << "Please provide IP address and Port of the server." << endl;
+        return 1;
+    }
+
     INIT();
 
 #ifdef USE_CONNECTED_CLIENT
