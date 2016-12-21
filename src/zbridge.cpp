@@ -1,6 +1,5 @@
 #include <unordered_map>
 #include <chrono>
-#include <unistd.h>
 #include "Data.h"
 #include "etcp.h"
 #define RECLEN_TYPE uint16_t
@@ -130,13 +129,14 @@ int ureadline(SOCKET s, char* bufptr, int len) {
         *bufx++ = *ptr++;
         cnt++;
     }
-    if(cnt == len) fprintf(stderr, "Line is too big for buffer size provided to ureadline()!\n");
-    if(*ptr == '\0') fprintf(stderr, "Symbol '\\0' met before '\\n' in ureadline()!\n");
+    if(cnt == len && *ptr != '\n') fprintf(stderr, "Line is too big for buffer size provided to ureadline()!\n");
+    if(*ptr == '\0')
+        fprintf(stderr, "Symbol '\\0' met before '\\n' in ureadline()!\n");
     *bufx = '\n';
-    if(cnt == size) fprintf(stderr, "Datagram end reached in ureadline()!\n");
-
+    if(cnt == size) fprintf(stderr, "Info: Datagram end reached in ureadline()!\n");
+    if(cnt < len) *(++bufx) = '\0';
     dataFromServer.setCurrentDataPointer(++ptr);
-    return ++cnt;
+    return (int) (bufx - bufptr);
 //    while (--len > 0) {
 //        cnt = recv(aid, &c, 1, 0);
 //        if (cnt < 0) {

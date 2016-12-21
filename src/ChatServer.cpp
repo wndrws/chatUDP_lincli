@@ -34,6 +34,10 @@ int ChatServer::login(string username) {
         printf("Failed to login: %s\n", strerror(r));
         return -1;
     }
+    if(r != msg.size() + TS_EXTRA_LENGTH) {
+        printf("sendMessage: Not all bytes are sent!");
+        return -2;
+    }
     return 0;
 }
 
@@ -132,7 +136,7 @@ int ChatServer::sendMessage(string text) {
         printf("Failed to send message: %s\n", strerror(r));
         return -1;
     }
-    if(r != msg.size()) {
+    if(r != msg.size() + TS_EXTRA_LENGTH) {
         printf("sendMessage: Not all bytes are sent!");
         return -2;
     }
@@ -197,7 +201,7 @@ string ChatServer::receiveServerMessage() {
         //?
         return "";
     } else {
-        buf[r] = '\0';
+        //buf[r] = '\0';
         return string(buf);
     }
     return "";

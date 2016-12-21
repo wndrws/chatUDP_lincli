@@ -75,13 +75,13 @@ void* BackgroundThread(void* data) {
             if(error == EWOULDBLOCK || error == EAGAIN || error == EINTR) {
                 // It's ok, continue doing job after some time
                 usleep(timeQuantum*1000); // sleep for 0.2 seconds
-//                if(++hbcnt == timeHb/timeQuantum) chatServer.sendHeartbeat();
-//                else if(hbcnt == 2*timeHb/timeQuantum) chatServer.sendHeartbeat();
-//                else if(hbcnt == 3*timeHb/timeQuantum) chatServer.sendHeartbeat();
-//                else if(hbcnt == 4*timeHb/timeQuantum) {
-//                    cerr << "Error: server is not responding." << endl;
-//                    break;
-//                }
+                if(++hbcnt == timeHb/timeQuantum) chatServer.sendHeartbeat();
+                else if(hbcnt == 2*timeHb/timeQuantum) chatServer.sendHeartbeat();
+                else if(hbcnt == 3*timeHb/timeQuantum) chatServer.sendHeartbeat();
+                else if(hbcnt == 4*timeHb/timeQuantum) {
+                    cerr << "Error: server is not responding." << endl;
+                    break;
+                }
             } else {
                 cerr << "Error: reading from socket " << s << endl;
                 break;
@@ -184,12 +184,12 @@ int main(int argc, char** argv) {
             chatServer.showUsersList();
         }
 
+        bgThreadAlive = true;
         int r = pthread_create(&bgThread, NULL, BackgroundThread, (void*) &s);
         if(r < 0) {
             cerr << "CANNOT START THREAD" << endl;
             throw Exception();
         }
-        bgThreadAlive = true;
         while(bgThreadAlive) {
             /* NO SOCKET OPERATIONS HERE */
             cout << "Type name or id (with # symbol) of user you wish to chat with:" << endl;

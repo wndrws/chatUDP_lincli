@@ -22,6 +22,8 @@
 #define MAX_USERNAME_LENGTH 32
 #define MAX_MSG_LENGTH 60000
 
+#define TS_EXTRA_LENGTH 17 // 16 digits from number of useconds since epoch and 1 from '\n'
+
 using namespace std;
 
 class Exception {};
