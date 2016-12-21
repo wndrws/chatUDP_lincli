@@ -49,8 +49,6 @@ static void set_address(char *, char *, struct sockaddr_in *, char *);
 int ureadn(SOCKET s, char* bp, int len);
 int ureadvrec(SOCKET s, char* bp, int len);
 int ureadline(SOCKET s, char* bufptr, int len);
-int usendto(SOCKET sock, struct sockaddr_in peer, const char* msg);
-addr_id makeAddrID(const struct sockaddr_in *sap);
-//sockaddr_in unMakeAddrID(addr_id aid);
+int usendto(SOCKET sock, struct sockaddr_in peer, const char* msg, int len);
 
 #define USE_CONNECTED_CLIENT

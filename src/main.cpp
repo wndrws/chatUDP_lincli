@@ -19,11 +19,13 @@ using namespace std;
 
 ChatServer chatServer;
 queue<string> MessagesToSend;
+queue<string> MessagesToAck;
 static CAutoMutex autoMutex;
 volatile bool bgThreadAlive;
 volatile bool checkOnline = true;
 volatile bool checkPending = false;
 bool blockingMode = true;
+bool awaitingAck = false;
 void showHelp();
 
 Data dataFromServer;
@@ -37,8 +39,10 @@ void* BackgroundThread(void* data) {
     bool ok = true;
     int mode = 0;
     int hbcnt = 0;
+    int ackcnt = 0;
     unsigned int timeQuantum = 200; // sleep time between readings from non-blocking socket (ms)
     unsigned int timeHb = 10000; // time to send the first heartbeat (ms)
+    unsigned int ackTimeout = 5000;
 
     while(ok && bgThreadAlive) {
         if (!MessagesToSend.empty()) {
@@ -49,7 +53,9 @@ void* BackgroundThread(void* data) {
                 if (r < 0) {
                     cout << "Retrying..." << endl;
                 } else {
+                    MessagesToAck.push(msg);
                     MessagesToSend.pop();
+                    awaitingAck = true;
                 }
             }
         }
@@ -75,12 +81,22 @@ void* BackgroundThread(void* data) {
             if(error == EWOULDBLOCK || error == EAGAIN || error == EINTR) {
                 // It's ok, continue doing job after some time
                 usleep(timeQuantum*1000); // sleep for 0.2 seconds
-                if(++hbcnt == timeHb/timeQuantum) chatServer.sendHeartbeat();
-                else if(hbcnt == 2*timeHb/timeQuantum) chatServer.sendHeartbeat();
-                else if(hbcnt == 3*timeHb/timeQuantum) chatServer.sendHeartbeat();
+                if(++hbcnt == timeHb/timeQuantum) chatServer.sendReqHeartbeat();
+                else if(hbcnt == 2*timeHb/timeQuantum) chatServer.sendReqHeartbeat();
+                else if(hbcnt == 3*timeHb/timeQuantum) chatServer.sendReqHeartbeat();
                 else if(hbcnt == 4*timeHb/timeQuantum) {
-                    cerr << "Error: server is not responding." << endl;
+                    cerr << "Error: server is not responding.\n" << endl;
                     break;
+                }
+                if(awaitingAck && !MessagesToAck.empty()) {
+                    if(++ackcnt == ackTimeout/timeQuantum) {
+                        cout << "[ Your message probably hasn't reached the server ]" << endl;
+                        cout << MessagesToAck.front() << endl;
+                        cout << "[ Please try to send it again ]" << endl;
+                        MessagesToAck.pop();
+                        if(MessagesToAck.empty()) awaitingAck = false;
+                        ackcnt = 0;
+                    }
                 }
             } else {
                 cerr << "Error: reading from socket " << s << endl;
@@ -127,8 +143,17 @@ void* BackgroundThread(void* data) {
                         checkOnline = false;
                     }
                     break;
-                case CODE_HEARTBEAT:
+                case CODE_CLIHEARTBEAT:
                     hbcnt = 0;
+                    break;
+                case CODE_SRVHEARTBEAT:
+                    if(!chatServer.sendAnsHeartbeat()) ok = false;
+                    break;
+                case CODE_ACK:
+                    ackcnt = 0;
+                    if(awaitingAck && !MessagesToAck.empty()) MessagesToAck.pop();
+                    else cerr << "Warning: Unexpected or late acknowledgement received!" << endl;
+                    if(MessagesToAck.empty()) awaitingAck = false;
                     break;
                 default:
                     cerr << "Warning: Packet with unknown code is received!" << endl;
@@ -215,7 +240,7 @@ int main(int argc, char** argv) {
                     MAX_USERNAME_LENGTH << " characters long!";
             }
             if(!bgThreadAlive) break;
-            system("cls");
+            system("clear");
             //system("prompt [ You ]: ");
             if(peername.at(0) == '#') cout << "Public room " << peername << ":" << endl << endl;
             else cout << "Chat with " << peername << ":" << endl << endl;

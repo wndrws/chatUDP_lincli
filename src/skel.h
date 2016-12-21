@@ -20,8 +20,6 @@ extern char* program_name;
 
 typedef int SOCKET;
 
-typedef unsigned long long addr_id;
-
 #ifdef __cplusplus
 }
 #endif

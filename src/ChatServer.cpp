@@ -29,7 +29,7 @@ int ChatServer::login(string username) {
     msg.insert(0, 1, (char) CODE_LOGINREQUEST);
     //msg.insert(1, (char*) &len, 2);
 
-    int r = usendto(m_Socket, m_Sockaddr, msg.c_str());
+    int r = usendto(m_Socket, m_Sockaddr, msg.c_str(), 0);
     if(r < 0) {
         printf("Failed to login: %s\n", strerror(r));
         return -1;
@@ -43,7 +43,7 @@ int ChatServer::login(string username) {
 
 int ChatServer::logout() {
     char code = CODE_LOGOUTREQUEST;
-    int r = usendto(m_Socket, m_Sockaddr, &code);
+    int r = usendto(m_Socket, m_Sockaddr, &code, 1);
     if(r < 0) {
         printf("Failed to logout: %s\n", strerror(r));
         return -1;
@@ -131,7 +131,7 @@ int ChatServer::sendMessage(string text) {
     //msg.insert(0, (char*) &len, 2);
     string msg = to_string(getCurrentPeer()) + "\n" + text + "\n";
     msg.insert(0, 1, (char) CODE_INMSG);
-    int r = usendto(m_Socket, m_Sockaddr, msg.c_str());
+    int r = usendto(m_Socket, m_Sockaddr, msg.c_str(), 0);
     if(r < 0) {
         printf("Failed to send message: %s\n", strerror(r));
         return -1;
@@ -240,12 +240,22 @@ bool ChatServer::receiveLogoutNotification() {
     return (it1 != m_Users.cend() && it2 == m_Users.cend());
 }
 
-int ChatServer::sendHeartbeat() const {
-    char code = CODE_HEARTBEAT;
-    int r = usendto(m_Socket, m_Sockaddr, &code);
+bool ChatServer::sendReqHeartbeat() const {
+    char code = CODE_CLIHEARTBEAT;
+    int r = usendto(m_Socket, m_Sockaddr, &code, 1);
     if(r < 0) {
         printf("Failed to send heartbeat: %s\n", strerror(r));
-        return -1;
+        return false;
     }
-    return 0;
+    return true;
+}
+
+bool ChatServer::sendAnsHeartbeat() const {
+    char code = CODE_SRVHEARTBEAT;
+    int r = usendto(m_Socket, m_Sockaddr, &code, 1);
+    if(r < 0) {
+        printf("Failed to send heartbeat: %s\n", strerror(r));
+        return false;
+    }
+    return true;
 }

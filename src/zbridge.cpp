@@ -37,24 +37,8 @@ int ureadn(SOCKET s, char* bp, int len) {
         *bp++ = *ptr++;
         cnt++;
     }
-    if(cnt == size) fprintf(stderr, "Datagram end reached in ureadn()!\n");
+    //if(cnt == size) fprintf(stderr, "Datagram end reached in ureadn()!\n");
 
-//    int cnt, rc;
-//
-//    cnt = len;
-//    while(cnt > 0) {
-//        //rc = recv(sock, bp, cnt, 0);
-//        if(rc < 0) {                // Ошибка чтения?..
-//            if(errno == EINTR)      // Или вызов был прерван?
-//                continue;           // Повторить чтение
-//            return -1;              // Вернуть код ошибки
-//        }
-//        if(rc == 0) {               // Если ничего не принято,
-//            return len - cnt;       // вернуть неполный счетчик.
-//        }
-//        bp += rc;
-//        cnt -= rc;
-//    }
     dataFromServer.setCurrentDataPointer(ptr);
     return len;
 }
@@ -97,10 +81,6 @@ int ureadvrec(SOCKET s, char* bp, int len) {
 // Максимальный размер буфера для записи равен len.
 int ureadline(SOCKET s, char* bufptr, int len) {
     char* bufx = bufptr;
-    //static char* bp;
-    //static int cnt = 0;
-    //static char b[65536];
-    //char c;
 
     if(dataFromServer.empty()) {
         char buf[MAX_BUF_SIZE];
@@ -130,80 +110,22 @@ int ureadline(SOCKET s, char* bufptr, int len) {
         cnt++;
     }
     if(cnt == len && *ptr != '\n') fprintf(stderr, "Line is too big for buffer size provided to ureadline()!\n");
-    if(*ptr == '\0')
-        fprintf(stderr, "Symbol '\\0' met before '\\n' in ureadline()!\n");
+    if(*ptr == '\0') fprintf(stderr, "Symbol '\\0' met before '\\n' in ureadline()!\n");
     *bufx = '\n';
-    if(cnt == size) fprintf(stderr, "Info: Datagram end reached in ureadline()!\n");
+    //if(cnt == size) fprintf(stderr, "Info: Datagram end reached in ureadline()!\n");
     if(cnt < len) *(++bufx) = '\0';
     dataFromServer.setCurrentDataPointer(++ptr);
     return (int) (bufx - bufptr);
-//    while (--len > 0) {
-//        cnt = recv(aid, &c, 1, 0);
-//        if (cnt < 0) {
-//            if (errno == EINTR) {
-//                len++; /* Уменьшим на 1 в заголовке while. */
-//                continue;
-//            }
-//            return -1;
-//        }
-//        if (cnt == 0) return 0;
-//        *bufptr++ = c;
-//        if (c == '\n') {
-//            *bufptr = '\0';
-//            return (int) (bufptr - bufx);
-//        }
-//    }fа
-
-//    Snader:
-//    while (--len > 0) {
-//        if(--cnt <= 0) {
-//            cnt = recv(sock, b, sizeof(b), 0);
-//            if(cnt < 0) {
-//                if(errno == EINTR) {
-//                    len++; /* Уменьшим на 1 в заголовке while. */
-//                    continue;
-//                }
-//                return -1;
-//            }
-//            if(cnt == 0) return 0;
-//            bp = b;
-//        }
-//        c = *bp++;
-//        *bufptr++ = c;
-//        if(c == '\n') {
-//            *bufptr = '\0';
-//            return (int) (bufptr - bufx);
-//        }
-//    }
-
-//    set_errno(EMSGSIZE);
-//    return -1;
 }
 
-addr_id makeAddrID(const struct sockaddr_in *sap) {
-    return ((unsigned long long) sap->sin_addr.s_addr << 8*sizeof(uint16_t) + sap->sin_port);
-}
-
-sockaddr_in unMakeAddrID(addr_id aid) {
-    uint16_t port = (uint16_t) (aid % 0x10000);
-    uint32_t addr = (uint32_t) (aid >> 8*sizeof(u_short));
-    sockaddr_in peer;
-    bzero(&peer, sizeof(peer));
-    peer.sin_addr.s_addr = addr;
-    peer.sin_port = port;
-    peer.sin_family = AF_INET;
-    return peer;
-}
-
-int usendto(SOCKET sock, struct sockaddr_in peer, const char* msg) {
+int usendto(SOCKET sock, struct sockaddr_in peer, const char* msg, int len = 0) {
     // Add timestamp to the message
     chrono::time_point<chrono::system_clock> now = chrono::system_clock::now();
     string fullmsg = to_string(chrono::duration_cast<chrono::microseconds>(now.time_since_epoch()).count());
-    fullmsg.append("\n").append(msg);
-    //sockaddr_in peer = unMakeAddrID(aid);
-#ifdef USE_CONNECTED_CLIENT
-    return send(sock, fullmsg.c_str(), (int) fullmsg.length(), 0);
-#else
-    return sendto(sock, fullmsg.c_str(), (int) fullmsg.length(), 0, (sockaddr*) &peer, sizeof(peer));
-#endif
+    unsigned long long minlen = fullmsg.append("\n").length();
+    fullmsg.append(msg);
+    unsigned long long fulllen;
+    if(len == 0) fulllen = fullmsg.length();
+    else fulllen = minlen + len;
+    return sendto(sock, fullmsg.c_str(), (int) fulllen, 0, (sockaddr*) &peer, sizeof(peer));
 }

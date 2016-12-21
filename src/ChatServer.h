@@ -13,11 +13,13 @@
 #define CODE_LOGINNOTIFY 6
 #define CODE_LOGOUTNOTIFY 7
 #define CODE_SRVERR 8
-#define CODE_HEARTBEAT 9
-#define CODE_SRVMSG 10
+#define CODE_CLIHEARTBEAT 9
+#define CODE_SRVHEARTBEAT 10
+#define CODE_SRVMSG 11
 
 #define CODE_INMSG 128
 #define CODE_OUTMSG 129
+#define CODE_ACK 130
 
 #define MAX_USERNAME_LENGTH 32
 #define MAX_MSG_LENGTH 60000
@@ -57,5 +59,6 @@ public:
     string receiveServerMessage();
     bool receiveLoginNotification();
     bool receiveLogoutNotification();
-    int sendHeartbeat() const;
+    bool sendReqHeartbeat() const;
+    bool sendAnsHeartbeat() const;
 };
